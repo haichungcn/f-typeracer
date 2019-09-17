@@ -1,0 +1,15 @@
+@font-face {
+  font-family: "proxima-regular";
+  src: url("proxima-nova-regular.woff") format("woff"),
+       url("proxima-nova-regular.ttf") format("ttf");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "proxima-bold";
+  src: url("proxima-nova-bold.woff") format("woff"),
+       url("proxima-nova-bold.ttf") format("ttf");
+  font-weight: normal;
+  font-style: normal;
+}
