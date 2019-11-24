@@ -1,4 +1,5 @@
- Source code available on <a target="_blank" href="https://github.com/sinapinto/react-typing-test">Github</a>.
- Colorscheme used is <a target="_blank" href="https://github.com/morhetz/gruvbox">Gruvbox</a>.
+# Setup
 
- Retouch by <a target="_blank" href="https://github.com/kyakaze/react_typing_test_retouch"> kyakaze </a>.
+1. `git clone git@github.com:PrimeTimeTran/r-TypingTest.git client`
+2. `cd client`
+3. `yarn install`

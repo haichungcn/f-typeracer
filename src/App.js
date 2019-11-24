@@ -11,22 +11,44 @@ require("./font-awesome/css/font-awesome.css");
 class App extends React.Component {
   constructor(props) {
     super(props);
+
     this.state = {
       wpm: 0,
       index: 0,
       value: "",
+      token: "",
       error: false,
       errorCount: 0,
       timeElapsed: 0,
       lineView: false,
       startTime: null,
       completed: false,
-      excerpt: this._randomElement(this.props.excerpts),
+      excerpt: this._randomElement(this.props.excerpts)
     };
   }
+
   async componentDidMount() {
     this.intervals = [];
+    this.setupCurrentUser();
   }
+
+  setupCurrentUser = () => {
+    const existingToken = sessionStorage.getItem("token");
+    const accessToken =
+      window.location.search.split("=")[0] === "?api_key"
+        ? window.location.search.split("=")[1]
+        : null;
+    if (!accessToken && !existingToken) {
+      window.location.replace(`https://127.0.0.1:5000`);
+    }
+
+    if (accessToken) {
+      sessionStorage.setItem("token", accessToken);
+    }
+    this.setState({
+      token: existingToken || accessToken
+    });
+  };
 
   setInterval() {
     this.intervals.push(setInterval.apply(null, arguments));
@@ -55,10 +77,9 @@ class App extends React.Component {
             value: "",
             completed: true
           },
-          function() {
-            this._calculateWPM();
-          }
+          this._calculateWPM
         );
+
         this.intervals.map(clearInterval);
       } else {
         this.setState({
@@ -110,18 +131,37 @@ class App extends React.Component {
             timeElapsed: new Date().getTime() - this.state.startTime
           });
         }, 50);
-        this.setInterval(() => {
-          this._calculateWPM();
-        }, 1000);
+        this.setInterval(this._calculateWPM, 1000);
       }
     );
   };
 
+  postScore = async (wpm, elapsed) => {
+    const resp = await fetch("https://127.0.0.1:5000/scores", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Token ${this.state.token}`
+      },
+      body: JSON.stringify({
+        wpm,
+        time: elapsed,
+        errorCount: this.state.errorCount
+      })
+    });
+    const data = await resp.json();
+    if (data.code === 200) {
+    } else {
+      this.setState({ error: "Could not post score" });
+    }
+  };
+
   _calculateWPM = () => {
-    let elapsed = new Date().getTime() - this.state.startTime;
+    const elapsed = new Date().getTime() - this.state.startTime;
     let wpm;
     if (this.state.completed) {
       wpm = (this.state.excerpt.split(" ").length / (elapsed / 1000)) * 60;
+      // this.postScore(wpm, elapsed);
     } else {
       let words = this.state.excerpt.slice(0, this.state.index).split(" ")
         .length;
@@ -132,14 +172,9 @@ class App extends React.Component {
     });
   };
 
-  render() {
+  renderGame = () => {
     return (
       <>
-        <div className="header">
-          <h1>Type Racing</h1>
-          <i onClick={this._restartGame} className="fa fa-lg fa-refresh"></i>
-          <i className="fa fa-lg fa-bars" onClick={this._changeView}></i>
-        </div>
         <TextDisplay
           index={this.state.index}
           error={this.state.error}
@@ -159,6 +194,38 @@ class App extends React.Component {
           <span className="wpm">{this.state.wpm}</span>
           <span className="errors">{this.state.errorCount}</span>
         </div>
+      </>
+    )
+  }
+
+  renderSignin = () => {
+    return (
+      <div classname="signin">
+          <h1>Please Sign In</h1>
+          <input 
+            autoFocus
+            placeholder="Email"
+          />
+          <input 
+          />
+      </div>
+    )
+  }
+
+  render() {
+    return (
+      <>
+        <div className="header">
+          <h1>Type Racing</h1>
+          <i onClick={this._restartGame} className="fa fa-lg fa-refresh"></i>
+          <i className="fa fa-lg fa-bars" onClick={this._changeView}></i>
+          {this.state.token && this.state.token.length > 3 ? (
+            <div>Sign Out</div>
+          ) : (
+            <div> Sign In</div>
+          )}
+        </div>
+        {this.state.token && this.state.token.length > 3 ? this.renderGame() : this.renderSignin()} 
         <Footer />
       </>
     );
