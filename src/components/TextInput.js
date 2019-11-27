@@ -1,6 +1,7 @@
 import React from 'react';
 
 class TextInput extends React.Component {
+
   handleChange = e => {
     if (!this.props.started) this.props.setupIntervals();
     this.props.onInputChange(e);
@@ -15,7 +16,8 @@ class TextInput extends React.Component {
           ref="textInput"
           value={this.props.value}
           onChange={this.handleChange}
-          placeholder="Start typing.."
+          onKeyUp={(e) => {this.props.onKeyPressed(e)}}
+          placeholder={this.props.placeHolderText}
           className={this.props.error ? "error" : ""}
         />
       </div>

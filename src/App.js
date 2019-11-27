@@ -34,14 +34,14 @@ class App extends React.Component {
       startTime: null,
       completed: false,
       excerpt: {body: ''},
-      current_user: {id: 1, username: 'haifly'}
+      placeHolderText:"Start by type here..."
     };
   }
 
   async componentDidMount() {
     this.intervals = [];
-    // this.getExcerpts();
     this.getUserInfo();
+    this.getExcerpts();
     // this.setupCurrentUser();
   }
 
@@ -54,6 +54,7 @@ class App extends React.Component {
     })
     if (res.ok) {
       const data = await res.json()
+      console.log(data)
       this.setState({user:data})
     }
   }
@@ -90,8 +91,9 @@ class App extends React.Component {
   };
 
   _handleInputChange = e => {
-    if (this.state.completed) return;
-
+    if (this.state.completed) {
+      return;
+    }
     let inputVal = e.target.value;
     let index = this.state.index;
     if (this.state.excerpt.body.slice(index, index + inputVal.length) === inputVal) {
@@ -103,6 +105,7 @@ class App extends React.Component {
       } else if (index + inputVal.length === this.state.excerpt.body.length) {
         this.setState(
           {
+            placeHolderText : "Enter to start over...",
             value: "",
             completed: true
           },
@@ -127,6 +130,15 @@ class App extends React.Component {
     }
   };
 
+  _handleKeyPress = e => {
+    if (this.state.completed) {
+      console.log('still running', e.keyCode, e.key)
+      if (e.keyCode === 13) {
+        this._restartGame()
+      }
+    }
+  }
+
   _changeView = e => {
     this.setState({ lineView: !this.state.lineView });
   };
@@ -144,7 +156,7 @@ class App extends React.Component {
         lineView: false,
         startTime: null,
         completed: false,
-        current_user: {id: 1, username: 'haifly'}
+        placeHolderText:"Start by type here..."
       },
       () => this.intervals.map(clearInterval)
     );
@@ -178,7 +190,7 @@ class App extends React.Component {
         time: elapsed,
         errorCount: this.state.errorCount,
         excerpt_id: this.state.excerpt.id,
-        user_id: this.state.current_user.id
+        user_id: this.state.user.user_id
       })
     });
     const data = await resp.json();
@@ -189,9 +201,10 @@ class App extends React.Component {
   };
 
   getExcerpts = async () => {
-    const response = await fetch("https://localhost:5000/excerpts");
+    const response = await fetch("https://127.0.0.1:5000/excerpts");
     if (response.ok) {
       const data = await response.json();
+      console.log(data)
       this.setState({
         excerpts : data,
         excerpt : this._randomElement(data)
@@ -222,6 +235,7 @@ class App extends React.Component {
           index={this.state.index}
           error={this.state.error}
           lineView={this.state.lineView}
+          placeHolderText={this.state.placeHolderText}
         >
           {this.state.excerpt.body}
         </TextDisplay>
@@ -230,7 +244,9 @@ class App extends React.Component {
           value={this.state.value}
           started={!!this.state.startTime}
           setupIntervals={this._setupIntervals}
+          placeHolderText={this.state.placeHolderText}
           onInputChange={this._handleInputChange}
+          onKeyPressed= {this._handleKeyPress}
         />
         <div className={this.state.completed ? "stats completed" : "stats"}>
           <Clock elapsed={this.state.timeElapsed} />
@@ -262,10 +278,12 @@ class App extends React.Component {
       <>
         <div className="header">
           <h1>Type Racing</h1>
+          <i onClick={()=>{this.handleLogOut()}} className="fa fa-lg fa-sign-out"></i>
+          {/* <i onClick={this._restartGame} className="fa fa-lg fa-bars"></i> */}
           <i onClick={this._restartGame} className="fa fa-lg fa-refresh"></i>
-          <i className="fa fa-lg fa-bars" onClick={this._changeView}></i>
+          <i className="fa fa-lg fa-bold" onClick={this._changeView}></i>
           {this.state.token && this.state.token.length > 1 ? (
-            <div><a href="#" onClick={()=>{this.handleLogOut()}}>Sign Out</a></div>
+            <div><h4>Welcome back, <a href="#" class="contrast bold" onClick={()=>{this.handleLogOut()}}>{this.state.user.user_name}</a></h4></div>
           ) : (
             <div> Sign In</div>
           )}
