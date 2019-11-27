@@ -10,53 +10,82 @@ require("./font-awesome/css/font-awesome.css");
 
 class App extends React.Component {
   constructor(props) {
+    const existingToken = sessionStorage.getItem("token");
+    const accessToken =
+      window.location.search.split("=")[0] === "?api_key"
+        ? window.location.search.split("=")[1]
+        : null;
+
+    if (accessToken) {
+      sessionStorage.setItem("token", accessToken);
+    }
     super(props);
 
     this.state = {
+      user: null,
+      token: existingToken || accessToken,
       wpm: 0,
       index: 0,
       value: "",
-      token: "",
       error: false,
       errorCount: 0,
       timeElapsed: 0,
       lineView: false,
       startTime: null,
       completed: false,
-      excerpt: this._randomElement(this.props.excerpts)
+      excerpt: {body: ''},
+      current_user: {id: 1, username: 'haifly'}
     };
   }
 
   async componentDidMount() {
     this.intervals = [];
-    this.setupCurrentUser();
+    // this.getExcerpts();
+    this.getUserInfo();
+    // this.setupCurrentUser();
   }
 
-  setupCurrentUser = () => {
-    const existingToken = sessionStorage.getItem("token");
-    const accessToken =
-      window.location.search.split("=")[0] === "?api_key"
-        ? window.location.search.split("=")[1]
-        : null;
-    if (!accessToken && !existingToken) {
-      window.location.replace(`https://127.0.0.1:5000`);
+  async getUserInfo() {
+    const res = await fetch('https://127.0.0.1:5000/getuser', {
+      headers : {
+        "Content-Type": "application/json",
+        "Authorization": `Token ${this.state.token}`
+      }
+    })
+    if (res.ok) {
+      const data = await res.json()
+      this.setState({user:data})
     }
+  }
 
-    if (accessToken) {
-      sessionStorage.setItem("token", accessToken);
+  async handleLogOut() {
+    const res = await fetch('https://127.0.0.1:5000/logout', {
+      headers : {
+        "Content-Type": "application/json",
+        "Authorization": `Token ${this.state.token}`
+      }
+    })
+
+    if (res.ok) {
+      const data = await res.json()
+      if (data.success === true) {
+        sessionStorage.clear('token')
+        this.setState({
+          user:null,
+          token:null
+        })
+      }
     }
-    this.setState({
-      token: existingToken || accessToken
-    });
-  };
+  }
+
 
   setInterval() {
     this.intervals.push(setInterval.apply(null, arguments));
   }
 
   _randomElement = array => {
-    return this.props.excerpts[
-      Math.floor(Math.random() * this.props.excerpts.length)
+    return array[
+      Math.floor(Math.random() * array.length)
     ];
   };
 
@@ -65,13 +94,13 @@ class App extends React.Component {
 
     let inputVal = e.target.value;
     let index = this.state.index;
-    if (this.state.excerpt.slice(index, index + inputVal.length) === inputVal) {
+    if (this.state.excerpt.body.slice(index, index + inputVal.length) === inputVal) {
       if (inputVal.slice(-1) === " " && !this.state.error) {
         this.setState({
           value: "",
           index: this.state.index + inputVal.length
         });
-      } else if (index + inputVal.length === this.state.excerpt.length) {
+      } else if (index + inputVal.length === this.state.excerpt.body.length) {
         this.setState(
           {
             value: "",
@@ -103,6 +132,7 @@ class App extends React.Component {
   };
 
   _restartGame = () => {
+    this.getExcerpts()
     this.setState(
       {
         wpm: 0,
@@ -114,7 +144,7 @@ class App extends React.Component {
         lineView: false,
         startTime: null,
         completed: false,
-        excerpt: this._randomElement(this.props.excerpts)
+        current_user: {id: 1, username: 'haifly'}
       },
       () => this.intervals.map(clearInterval)
     );
@@ -146,7 +176,9 @@ class App extends React.Component {
       body: JSON.stringify({
         wpm,
         time: elapsed,
-        errorCount: this.state.errorCount
+        errorCount: this.state.errorCount,
+        excerpt_id: this.state.excerpt.id,
+        user_id: this.state.current_user.id
       })
     });
     const data = await resp.json();
@@ -156,14 +188,25 @@ class App extends React.Component {
     }
   };
 
+  getExcerpts = async () => {
+    const response = await fetch("https://localhost:5000/excerpts");
+    if (response.ok) {
+      const data = await response.json();
+      this.setState({
+        excerpts : data,
+        excerpt : this._randomElement(data)
+      });
+    } 
+  };
+
   _calculateWPM = () => {
     const elapsed = new Date().getTime() - this.state.startTime;
     let wpm;
     if (this.state.completed) {
-      wpm = (this.state.excerpt.split(" ").length / (elapsed / 1000)) * 60;
-      // this.postScore(wpm, elapsed);
+      wpm = (this.state.excerpt.body.split(" ").length / (elapsed / 1000)) * 60;
+      this.postScore(wpm, elapsed);
     } else {
-      let words = this.state.excerpt.slice(0, this.state.index).split(" ")
+      let words = this.state.excerpt.body.slice(0, this.state.index).split(" ")
         .length;
       wpm = (words / (elapsed / 1000)) * 60;
     }
@@ -180,7 +223,7 @@ class App extends React.Component {
           error={this.state.error}
           lineView={this.state.lineView}
         >
-          {this.state.excerpt}
+          {this.state.excerpt.body}
         </TextDisplay>
         <TextInput
           error={this.state.error}
@@ -213,19 +256,21 @@ class App extends React.Component {
   }
 
   render() {
-    return (
+    // console.log('sdfsdfsdfsdfsdf', this.state.token)
+    if (!this.state.user) return <button onClick={()=>{window.location.replace('https://127.0.0.1:5000/login/facebook')}}>LOGIN WITH FACEBOOK</button>
+    else return (
       <>
         <div className="header">
           <h1>Type Racing</h1>
           <i onClick={this._restartGame} className="fa fa-lg fa-refresh"></i>
           <i className="fa fa-lg fa-bars" onClick={this._changeView}></i>
-          {this.state.token && this.state.token.length > 3 ? (
-            <div>Sign Out</div>
+          {this.state.token && this.state.token.length > 1 ? (
+            <div><a href="#" onClick={()=>{this.handleLogOut()}}>Sign Out</a></div>
           ) : (
             <div> Sign In</div>
           )}
         </div>
-        {this.state.token && this.state.token.length > 3 ? this.renderGame() : this.renderSignin()} 
+        {this.state.token && this.state.token.length > 1 ? this.renderGame() : this.renderSignin()} 
         <Footer />
       </>
     );
