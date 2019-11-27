@@ -46,7 +46,7 @@ class App extends React.Component {
   }
 
   async getUserInfo() {
-    const res = await fetch('https://127.0.0.1:5000/getuser', {
+    const res = await fetch('https://fs-typeracer.herokuapp.com/getuser', {
       headers : {
         "Content-Type": "application/json",
         "Authorization": `Token ${this.state.token}`
@@ -60,7 +60,7 @@ class App extends React.Component {
   }
 
   async handleLogOut() {
-    const res = await fetch('https://127.0.0.1:5000/logout', {
+    const res = await fetch('https://fs-typeracer.herokuapp.com/logout', {
       headers : {
         "Content-Type": "application/json",
         "Authorization": `Token ${this.state.token}`
@@ -179,7 +179,7 @@ class App extends React.Component {
   };
 
   postScore = async (wpm, elapsed) => {
-    const resp = await fetch("https://127.0.0.1:5000/scores", {
+    const resp = await fetch("https://fs-typeracer.herokuapp.com/scores", {
       method: "POST",
       headers: {
         'Content-Type': 'application/json',
@@ -201,7 +201,7 @@ class App extends React.Component {
   };
 
   getExcerpts = async () => {
-    const response = await fetch("https://127.0.0.1:5000/excerpts");
+    const response = await fetch("https://fs-typeracer.herokuapp.com/excerpts");
     if (response.ok) {
       const data = await response.json();
       console.log(data)
@@ -273,7 +273,7 @@ class App extends React.Component {
 
   render() {
     // console.log('sdfsdfsdfsdfsdf', this.state.token)
-    if (!this.state.user) return <button onClick={()=>{window.location.replace('https://127.0.0.1:5000/login/facebook')}}>LOGIN WITH FACEBOOK</button>
+    if (!this.state.user) return <button onClick={()=>{window.location.replace('https://fs-typeracer.herokuapp.com/login/facebook')}}>LOGIN WITH FACEBOOK</button>
     else return (
       <>
         <div className="header">
